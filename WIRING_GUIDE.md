@@ -140,7 +140,26 @@ You will need a **1KΩ resistor** and a **2KΩ resistor**.
 
 ---
 
-## 🎉 Final Checks
+## 🕒 Phase 5: DS1307 RTC Module (The Clock)
+
+The RTC allows the Mega to keep track of exactly when a car entered a slot for the **Billing** system. It uses the same communication method (I2C) as the LCD.
+
+### 1. Wiring the RTC
+The DS1307 has 4 main pins: `VCC`, `GND`, `SDA`, and `SCL`.
+*   **VCC** ➔ **Red line (5V)**.
+*   **GND** ➔ **Blue line (GND)**.
+*   **SDA** ➔ **Mega D20 (SDA)**.
+*   **SCL** ➔ **Mega D21 (SCL)**.
+
+### 2. Sharing the Pins (I2C Bus)
+You might notice that the LCD is already plugged into pins 20 and 21. **This is okay!** I2C is a "bus," meaning multiple devices can share the same two wires.
+*   Simply plug the RTC SDA wire into the same vertical column on your breadboard as the LCD SDA wire.
+*   Do the same for SCL.
+
+> [!CAUTION]
+> **RTC Pitfall:** Ensure your DS1307 has a coincell battery (usually a CR2032) installed. Without it, the clock will reset to 00:00:00 every time you unplug the power!
+
+---
 
 1. Are all three boards plugged into the exact same **Ground (Blue line)**?
 2. Are the 1K/2K resistors correctly dropping the voltage on the TX pins?

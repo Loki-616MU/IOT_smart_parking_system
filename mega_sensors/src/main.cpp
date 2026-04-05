@@ -12,6 +12,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <ArduinoJson.h>
 #include <math.h>
+#include "RTClib.h"
 
 // ─── Pin Definitions ───────────────────────────────────────
 #define TOTAL_SLOTS   4
@@ -39,6 +40,12 @@ int   gasRaw    = 0;
 char  gasStatus[10] = "Normal";
 bool  gasDanger  = false;
 bool  gasWarning = false;
+
+// ─── RTC & Billing State ───────────────────────────────────
+RTC_DS1307 rtc;
+DateTime entryTimes[TOTAL_SLOTS];
+uint32_t parkedMinutes[TOTAL_SLOTS] = {0};
+bool     rtcFound = false;
 
 // ─── Timing ────────────────────────────────────────────────
 unsigned long lastSend  = 0;
@@ -132,6 +139,19 @@ void sendSensorData() {
   doc["gas"] = gasStatus;
   doc["cal"] = !calibrated;
 
+  JsonArray bill = doc["bill"].to<JsonArray>();
+  for (int i = 0; i < TOTAL_SLOTS; i++) {
+    bill.add(parkedMinutes[i]);
+  }
+
+  // Add current time if RTC is working
+  if (rtcFound) {
+    DateTime now = rtc.now();
+    char timeBuf[10];
+    snprintf(timeBuf, 10, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());
+    doc["time"] = timeBuf;
+  }
+
   String out;
   serializeJson(doc, out);
   Serial1.println(out);
@@ -183,6 +203,18 @@ void setup() {
   lcd.print("v4.0  Mega Hub");
   delay(1500);
 
+  // RTC init
+  if (!rtc.begin()) {
+    Serial.println(F("[ERR] Couldn't find RTC"));
+    rtcFound = false;
+  } else {
+    rtcFound = true;
+    if (!rtc.isrunning()) {
+      Serial.println(F("[WARN] RTC is NOT running, adjusting to compile time..."));
+      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    }
+  }
+
   // Calibrate gas sensor with warm-up detection
   calibrateGasSensor();
 
@@ -202,9 +234,24 @@ void loop() {
         slotOccupied[i] = cur;
         changed = true;
         debounceCount[i] = 0;
+
+        // Billing: Record entry time on occupation
+        if (slotOccupied[i] && rtcFound) {
+          entryTimes[i] = rtc.now();
+        } else {
+          parkedMinutes[i] = 0; // Reset on exit
+        }
       }
     } else {
       debounceCount[i] = 0;
+    }
+
+    // Update duration if occupied
+    if (slotOccupied[i] && rtcFound) {
+      DateTime now = rtc.now();
+      if (now.unixtime() > entryTimes[i].unixtime()) {
+        parkedMinutes[i] = (now.unixtime() - entryTimes[i].unixtime()) / 60;
+      }
     }
     if (!slotOccupied[i]) avail++;
   }
@@ -264,6 +311,24 @@ void loop() {
     lcd.print(buf);
     lcd.setCursor(0, 1);
     snprintf(buf, 17, "%-16s", gasStatus);
+    lcd.print(buf);
+  } else if (!showGasOnLCD && rtcFound) {
+    // Screen: Time & Billing
+    DateTime now = rtc.now();
+    char buf[17];
+    snprintf(buf, 17, "Time: %02d:%02d   ", now.hour(), now.minute());
+    lcd.print(buf);
+    lcd.setCursor(0, 1);
+    
+    // Show duration of the most recently changed occupied slot or total summary
+    int activeSlot = -1;
+    for(int i=0; i<TOTAL_SLOTS; i++) { if(slotOccupied[i]) activeSlot = i; }
+    
+    if (activeSlot != -1) {
+      snprintf(buf, 17, "S%d Parked: %dm  ", activeSlot+1, (int)parkedMinutes[activeSlot]);
+    } else {
+      snprintf(buf, 17, "Lot Empty       ");
+    }
     lcd.print(buf);
   } else {
     char buf[17];

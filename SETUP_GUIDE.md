@@ -57,6 +57,10 @@ c:\IOT\
 | Buzzer (+) | D8 | Active buzzer, 5V |
 | Red LED | D9 | Through 220Ω to GND |
 | Green LED | D10 | Through 220Ω to GND |
+| RTC SDA | D20 | I2C Data (shared with LCD) |
+| RTC SCL | D21 | I2C Clock (shared with LCD) |
+| RTC VCC | 5V | |
+| RTC GND | GND | |
 | IR VCC (all) | 5V | |
 | IR GND (all) | GND | |
 
@@ -219,7 +223,7 @@ All inter-board communication uses **JSON-over-Serial** with newline termination
 
 **Mega → ESP32** (every 500ms):
 ```json
-{"t":"S","slots":[0,1,0,1],"ppm":234.5,"raw":512,"gas":"Normal","cal":false}
+{"t":"S","slots":[0,1,0,1],"ppm":234.5,"raw":512,"gas":"Normal","cal":false,"bill":[15,0,42,0],"time":"14:35:02"}
 ```
 
 **Uno → ESP32** (on gate events + every 3s):

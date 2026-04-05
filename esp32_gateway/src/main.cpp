@@ -37,6 +37,8 @@ struct SystemState {
   bool  calibrating;
   char  gateStatus[10];
   int   vehicleCount;
+  uint32_t parkedMinutes[TOTAL_SLOTS];
+  char  rtcTime[10];
   bool  megaOnline;
   bool  unoOnline;
   unsigned long megaLastSeen;
@@ -179,6 +181,12 @@ String buildStateJson() {
   doc["buzzer"]     = (strcmp(local.gasStatus, "Normal") != 0);
   doc["ledRed"]     = (local.availableSlots == 0 || strcmp(local.gasStatus, "Normal") != 0);
   doc["ledGreen"]   = (local.availableSlots > 0 && strcmp(local.gasStatus, "Normal") == 0);
+  doc["rtcTime"]    = local.rtcTime;
+
+  JsonArray bill = doc["bill"].to<JsonArray>();
+  for (int i = 0; i < TOTAL_SLOTS; i++) {
+    bill.add(local.parkedMinutes[i]);
+  }
 
   JsonArray slots = doc["slots"].to<JsonArray>();
   for (int i = 0; i < TOTAL_SLOTS; i++) {
@@ -220,6 +228,13 @@ void megaReaderTask(void* p) {
           state.gasPPM = doc["ppm"] | 0.0f;
           state.gasRaw = doc["raw"] | 0;
           strlcpy(state.gasStatus, doc["gas"] | "Normal", sizeof(state.gasStatus));
+          strlcpy(state.rtcTime, doc["time"] | "--:--:--", sizeof(state.rtcTime));
+          
+          JsonArray bill = doc["bill"];
+          for (int i = 0; i < TOTAL_SLOTS && i < (int)bill.size(); i++) {
+            state.parkedMinutes[i] = bill[i];
+          }
+
           state.megaOnline = true;
           state.megaLastSeen = millis();
 

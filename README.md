@@ -18,6 +18,8 @@
 | **Entry/Exit Detection** | Uno | IR sensors with debounced vehicle counting |
 | **Traffic LEDs** | Uno | Red (lot full) / Green (spaces available) at gate |
 | **WiFi Web Dashboard** | ESP32 | Glassmorphism dark-mode dashboard via WebSocket |
+| **Active Billing** | Mega+ESP32 | Tracks total minutes parked for each occupied slot |
+| **Real-Time Clock** | Mega | DS1307 module for local time and duration tracking |
 | **JSON REST API** | ESP32 | `/api/status` endpoint for external integrations |
 | **Node Health Monitor** | ESP32 | Tracks Mega/Uno connectivity with 5s timeout |
 
@@ -77,6 +79,7 @@ graph LR
 | Active Buzzer | 1 | Mega | 5V, gas alert patterns |
 | Red LED + 220Ω | 2 | Mega+Uno | Danger / lot full indicator |
 | Green LED + 220Ω | 2 | Mega+Uno | Normal / available indicator |
+| DS1307 RTC Module | 1 | Mega | Real-time clock with battery backup |
 | 1KΩ + 2KΩ Resistors | 2 sets | Wiring | Voltage dividers (5V→3.3V) |
 | Breadboard + wires | — | All | Prototyping |
 
@@ -98,6 +101,8 @@ graph LR
 | Buzzer | D8 | Digital Output |
 | Red LED | D9 | Digital Output |
 | Green LED | D10 | Digital Output |
+| RTC SDA | D20 | I2C Data (shared with LCD) |
+| RTC SCL | D21 | I2C Clock (shared with LCD) |
 | TX1 → ESP32 | D18 | Serial ⚠️ via voltage divider |
 | RX1 ← ESP32 | D19 | Serial |
 
@@ -211,13 +216,15 @@ c:\IOT\
   "vehicleCount": 12,
   "megaOnline": true,
   "unoOnline": true,
+  "rtcTime": "14:35:02",
+  "bill": [15, 0, 42, 0],
   "buzzer": false,
   "ledRed": false,
   "ledGreen": true,
   "slots": [
-    {"id": 1, "occupied": false},
-    {"id": 2, "occupied": true},
-    {"id": 3, "occupied": false},
+    {"id": 1, "occupied": true},
+    {"id": 2, "occupied": false},
+    {"id": 3, "occupied": true},
     {"id": 4, "occupied": false}
   ]
 }
