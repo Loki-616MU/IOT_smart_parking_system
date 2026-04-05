@@ -25,26 +25,38 @@
 
 ## 🏗️ Architecture
 
-```
-┌──────────────────┐   Serial1 @ 115200   ┌──────────────────┐
-│  ARDUINO MEGA    │ ──────────────────▶   │     ESP32        │
-│  Sensor Hub      │   (via voltage div)   │  Network Gateway │
-│                  │                       │                  │
-│  • 4x IR Slots   │                       │  • WiFi + WebSvr │
-│  • MQ-2 Gas      │                       │  • WebSocket     │
-│  • LCD 16x2      │                       │  • REST API      │
-│  • Buzzer + LEDs │                       │  • FreeRTOS      │
-└──────────────────┘                       │  • Node Health   │
-                                           └────────┬─────────┘
-┌──────────────────┐   Serial @ 9600              │
-│  ARDUINO UNO     │ ──────────────────▶──────────┘
-│  Gate Controller │   (via voltage div)
-│                  │
-│  • Entry/Exit IR │
-│  • Servo Gate    │
-│  • Traffic LEDs  │
-│  • Vehicle Count │
-└──────────────────┘
+```mermaid
+graph LR
+    subgraph "Arduino Mega — Sensor Hub"
+        IR1[IR Slot 1] --> M[Mega]
+        IR2[IR Slot 2] --> M
+        IR3[IR Slot 3] --> M
+        IR4[IR Slot 4] --> M
+        GAS[MQ-2 Gas] --> M
+        M --> LCD[16x2 LCD]
+        M --> BUZ[Buzzer]
+        M --> LEDS[Red/Green LEDs]
+    end
+
+    subgraph "Arduino Uno — Gate Controller"
+        ENTRY_IR[Entry IR] --> U[Uno]
+        EXIT_IR[Exit IR] --> U
+        U --> SERVO[Servo Gate]
+        U --> TL_R[Red Traffic LED]
+        U --> TL_G[Green Traffic LED]
+    end
+
+    subgraph "ESP32 — Network Gateway"
+        E[ESP32]
+        E --> WIFI((WiFi Dashboard))
+        E --> API((REST API))
+        E --> WS((WebSocket))
+    end
+
+    M -- "Serial1 (JSON)" --> E
+    U -- "Serial (JSON)" --> E
+    E -- "Commands" --> U
+    E -- "Commands" --> M
 ```
 
 ---
