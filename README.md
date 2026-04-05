@@ -69,7 +69,8 @@ graph LR
 | Arduino Mega 2560 | 1 | Sensors | Sensor hub + local alerts |
 | Arduino Uno | 1 | Gate | Gate barrier controller |
 | IR Obstacle Sensors | 4 | Mega | Parking slot detection (LOW = detected) |
-| IR Obstacle Sensors | 2 | Uno | Entry + Exit detection |
+| HC-SR04 Ultrasonic Sensor| 1 | Uno | Entry detection (distance based) |
+| IR Obstacle Sensors | 1 | Uno | Exit detection |
 | MQ-2 Gas Sensor | 1 | Mega | Analog output for smoke/LPG/CO |
 | 16x2 LCD with I2C | 1 | Mega | PCF8574 backpack (addr 0x27) |
 | SG90 Servo Motor | 1 | Uno | Barrier gate (0°=closed, 90°=open) |
@@ -104,7 +105,8 @@ graph LR
 
 | Component | Uno Pin | Type |
 |-----------|---------|------|
-| Entry IR | D2 | Digital Input |
+| HC-SR04 Trig | D6 | Digital Output |
+| HC-SR04 Echo | D7 | Digital Input |
 | Exit IR | D3 | Digital Input |
 | Servo Gate | D9 | PWM Output |
 | Red Traffic LED | D4 | Digital Output |

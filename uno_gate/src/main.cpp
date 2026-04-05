@@ -11,11 +11,13 @@
  * ================================================================
  */
 
+#include <Arduino.h>
 #include <Servo.h>
 #include <ArduinoJson.h>
 
 // ─── Pin Definitions ───────────────────────────────────────
-#define ENTRY_IR_PIN    2    // Entry sensor (INT0)
+#define TRIG_PIN        6    // HC-SR04 Trig
+#define ECHO_PIN        7    // HC-SR04 Echo
 #define EXIT_IR_PIN     3    // Exit sensor (INT1)
 #define SERVO_PIN       9    // Gate servo PWM
 #define TRAFFIC_RED     4    // Red traffic LED
@@ -25,6 +27,7 @@
 #define GATE_OPEN_ANGLE   90
 #define GATE_CLOSED_ANGLE 0
 #define GATE_HOLD_MS      4000   // ms to keep gate open after trigger
+#define DISTANCE_THRESHOLD 10    // cm threshold for entry detection
 
 // ─── Gate State Machine ────────────────────────────────────
 enum GateState {
@@ -51,6 +54,19 @@ unsigned long lastStatusSend    = 0;
 String serialBuffer = "";
 
 // ─── Send Gate Status ──────────────────────────────────────
+
+// ─── Ultrasonic Sensor ─────────────────────────────────────
+
+float getDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms timeout
+  if (duration == 0) return 999.0;
+  return duration * 0.034 / 2.0;
+}
 
 void sendGateStatus() {
   JsonDocument doc;
@@ -112,7 +128,8 @@ void processCommand(const String& line) {
 void setup() {
   Serial.begin(9600);   // Hardware Serial to ESP32
 
-  pinMode(ENTRY_IR_PIN, INPUT_PULLUP);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
   pinMode(EXIT_IR_PIN, INPUT_PULLUP);
   pinMode(TRAFFIC_RED, OUTPUT);
   pinMode(TRAFFIC_GREEN, OUTPUT);
@@ -133,8 +150,8 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // ── 1. Read Entry IR (debounced) ──
-  bool entryRaw = (digitalRead(ENTRY_IR_PIN) == LOW);
+  // ── 1. Read Entry Ultrasonic (debounced) ──
+  bool entryRaw = (getDistance() < DISTANCE_THRESHOLD);
   if (entryRaw != lastEntryState) {
     lastEntryDebounce = now;
     lastEntryState = entryRaw;
@@ -181,8 +198,8 @@ void loop() {
     case GATE_OPEN_HOLD:
       // Keep open, wait for timeout
       if (now - gateTimer > GATE_HOLD_MS) {
-        // Safety: don't close if IR still blocked
-        if (digitalRead(ENTRY_IR_PIN) == HIGH && digitalRead(EXIT_IR_PIN) == HIGH) {
+        // Safety: don't close if sensor still blocked
+        if (getDistance() > DISTANCE_THRESHOLD && digitalRead(EXIT_IR_PIN) == HIGH) {
           gateState = GATE_CLOSING;
         } else {
           gateTimer = now;  // Extend hold

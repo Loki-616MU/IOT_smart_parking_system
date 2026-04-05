@@ -72,7 +72,8 @@ c:\IOT\
 
 | Component | Uno Pin | Notes |
 |-----------|---------|-------|
-| Entry IR Sensor | D2 | Digital, LOW = vehicle |
+| HC-SR04 Trig | D6 | Digital output |
+| HC-SR04 Echo | D7 | Digital input |
 | Exit IR Sensor | D3 | Digital, LOW = vehicle |
 | Servo Signal | D9 | PWM, SG90 servo |
 | Servo VCC | 5V | Can share with board |
