@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Parking Dashboard — V4 Preview</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🅿️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060a13;--glass:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.07);--text:#e2e8f0;--dim:#64748b;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--purple:#a78bfa;--radius:20px;--radius-sm:12px}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);padding:20px;min-height:100vh;display:flex;justify-content:center;overflow-x:hidden}
+.c{max-width:900px;width:100%;z-index:1}
+.hdr{text-align:center;padding:28px;background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;backdrop-filter:blur(10px)}
+.hdr h1{font-size:1.8rem;background:linear-gradient(45deg,#818cf8,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{margin-top:5px;font-size:.82rem;color:var(--dim);font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.cd{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-sm);padding:15px;text-align:center;backdrop-filter:blur(5px)}
+.v{font-size:1.8rem;font-weight:900}.lb{font-size:.6rem;color:var(--dim);text-transform:uppercase;margin-top:5px;font-weight:700}
+.gas{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:18px;backdrop-filter:blur(10px)}
+.gb{height:6px;background:rgba(255,255,255,.05);border-radius:3px;margin:12px 0;overflow:hidden}
+.gf{height:100%;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.sl{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:transform .15s,border-color .3s}
+.sl:hover{transform:translateY(-2px)}
+.sl.occ{border-color:var(--red)}.sl.avl{border-color:var(--green)}
+.si{font-size:2rem;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.03);border-radius:12px}
+.gate{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(10px)}
+.gate button{padding:10px 24px;border:none;border-radius:10px;font-weight:900;cursor:pointer;font-size:.82rem;transition:transform .1s,background .3s;color:#000}
+.gate button:active{transform:scale(.94)}
+.nodes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.nd{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px;backdrop-filter:blur(5px)}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sim{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:18px;backdrop-filter:blur(10px)}
+.sim label{font-size:.65rem;font-weight:800;color:var(--dim);text-transform:uppercase}
+.sim input[type=range]{width:100%;margin-top:8px;accent-color:var(--blue)}
+.conn{position:fixed;top:15px;right:15px;font-size:.65rem;padding:5px 12px;border-radius:20px;font-weight:700;z-index:100;backdrop-filter:blur(5px)}
+.ov{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity .6s}
+.sp{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:15px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head><body>
+<div id="ld" class="ov"><div class="sp"></div><div style="font-weight:700">Connecting & Calibrating Sensors...</div></div>
+<div id="tag" class="conn" style="background:rgba(239,68,68,.2);color:var(--red);border:1px solid rgba(239,68,68,.2)">● OFFLINE</div>
+<div class="c">
+  <div class="hdr"><h1>🅿️ Smart Parking System</h1><p>v4.0 Multi-MCU Edition — ESP32 + Mega + Uno</p></div>
+  <div class="stats">
+    <div class="cd"><div class="v" id="av" style="color:var(--green)">-</div><div class="lb">Available</div></div>
+    <div class="cd"><div class="v" id="oc" style="color:var(--red)">-</div><div class="lb">Occupied</div></div>
+    <div class="cd"><div class="v" id="up" style="color:var(--blue);font-size:1.3rem">--</div><div class="lb">Uptime</div></div>
+  </div>
+  <div class="gas" id="gc">
+    <div style="display:flex;justify-content:space-between;font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--dim)"><span>Air Quality Monitor</span><span id="gs" style="color:var(--green)">Normal</span></div>
+    <div style="margin-top:8px;font-size:2.6rem;font-weight:900" id="gv">0<span style="font-size:.8rem;color:var(--dim);margin-left:8px">PPM</span></div>
+    <div class="gb"><div id="gbar" class="gf" style="width:0%;background:var(--green)"></div></div>
+  </div>
+  <div class="slots" id="sg"></div>
+  <div class="gate">
+    <div>
+      <div style="font-size:.65rem;font-weight:700;color:var(--dim);text-transform:uppercase">Gate Barrier</div>
+      <div style="font-weight:900;font-size:1.15rem;margin-top:4px" id="gt">Closed</div>
+      <div style="font-size:.72rem;color:var(--dim);margin-top:2px">Vehicles today: <span id="vc" style="font-weight:900;color:var(--text)">0</span></div>
+    </div>
+    <button id="gbtn" onclick="toggleGate()" style="background:var(--green)">Open Gate</button>
+  </div>
+  <div class="nodes">
+    <div class="nd"><div class="dot" id="md" style="background:var(--green)"></div><div><div style="font-size:.6rem;color:var(--dim);font-weight:700;text-transform:uppercase">Arduino Mega</div><div style="font-weight:900;font-size:.85rem" id="ms">Online — Sensor Hub</div></div></div>
+    <div class="nd"><div class="dot" id="ud" style="background:var(--green)"></div><div><div style="font-size:.6rem;color:var(--dim);font-weight:700;text-transform:uppercase">Arduino Uno</div><div style="font-weight:900;font-size:.85rem" id="us">Online — Gate Ctrl</div></div></div>
+  </div>
+  <div class="sim">
+    <label>Simulate Gas Level:</label>
+    <input type="range" id="gsli" min="0" max="1500" value="120" oninput="gas=+this.value;render()">
+  </div>
+</div>
+<script>
+let slots=[false,false,false,false],gas=120,gateOpen=false,vCount=0,calib=1;
+
+function render(){
+  const t=document.getElementById('tag'),l=document.getElementById('ld');
+  if(calib){setTimeout(()=>{calib=0;l.style.opacity='0';setTimeout(()=>l.style.display='none',600)},1800);return}
+  t.style.background='rgba(16,185,129,.2)';t.style.color='var(--green)';t.style.border='1px solid rgba(16,185,129,.2)';t.innerText='● LIVE (Demo)';
+  let a=slots.filter(s=>!s).length,o=slots.length-a;
+  document.getElementById('av').innerText=a;
+  document.getElementById('oc').innerText=o;
+  document.getElementById('up').innerText='0h 12m 34s';
+  document.getElementById('gv').firstChild.textContent=Math.round(gas);
+  let s='Normal',c='var(--green)',w=Math.min(gas/10,100)+'%';
+  if(gas>1000){s='Danger';c='var(--red)'}else if(gas>400){s='Warning';c='var(--yellow)'}
+  document.getElementById('gs').innerText=s;document.getElementById('gs').style.color=c;
+  document.getElementById('gbar').style.width=w;document.getElementById('gbar').style.background=c;
+  let h='';slots.forEach((s,i)=>{
+    let cl=s?'occ':'avl',st=s?'Occupied':'Available',ic=s?'🚗':'🅿️',co=s?'var(--red)':'var(--green)';
+    h+='<div class="sl '+cl+'" onclick="tog('+i+')"><div class="si">'+ic+'</div><div><div style="font-size:.68rem;color:var(--dim);text-transform:uppercase;font-weight:800">Slot '+(i+1)+'</div><div style="font-weight:900;font-size:1.05rem;color:'+co+'">'+st+'</div></div></div>';
+  });
+  document.getElementById('sg').innerHTML=h;
+  document.getElementById('gt').innerText=gateOpen?'Open':'Closed';
+  document.getElementById('gt').style.color=gateOpen?'var(--green)':'var(--text)';
+  document.getElementById('vc').innerText=vCount;
+  let btn=document.getElementById('gbtn');btn.innerText=gateOpen?'Close Gate':'Open Gate';btn.style.background=gateOpen?'var(--red)':'var(--green)';
+}
+function tog(i){slots[i]=!slots[i];render()}
+function toggleGate(){gateOpen=!gateOpen;if(gateOpen)vCount++;render()}
+setInterval(render,1000);render();
+</script></body></html>
